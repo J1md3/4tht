@@ -4,31 +4,13 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import *
-import re
 from colorama import Fore, Style, init
 import argparse
 import logging
+from strings_util import *
 
 # Initialize colorama
 init(autoreset=True)
-
-# Configuration
-DRIVER_PATH = '/usr/bin/chromedriver'
-BASE_TENDERS_URL = 'https://tenders.go.ke/tenders'
-BASE_ENTITIES_URL = 'https://tenders.go.ke/procuringentities'
-TENDER_NUMBER_REGEX = re.compile(r'\b(?:[A-Za-z]{2,}[-/]?\d+[-/]?\d*[A-Za-z]*)\b', re.IGNORECASE)
-
-URL_KEY = 'urls'
-KEYWORD_KEY = 'keywords'
-EXTRACTED_TENDERS = 'extracted_tenders'
-
-FILES = {
-    URL_KEY: 'file2.txt',
-    KEYWORD_KEY: 'file3.txt',
-    EXTRACTED_TENDERS: 'extracted_tender_numbers.txt'
-}
-
-CHROME_DRIVE_LOCATION = '/usr/bin/chromedriver'
 
 def read_file(filename):
     try:
