@@ -1,7 +1,6 @@
 import re
 
 # Configuration
-DRIVER_PATH = '/usr/bin/chromedriver'
 BASE_TENDERS_URL = 'https://tenders.go.ke/tenders'
 BASE_ENTITIES_URL = 'https://tenders.go.ke/procuringentities'
 TENDER_NUMBER_REGEX = re.compile(r'\b(?:[A-Za-z]{2,}[-/]?\d+[-/]?\d*[A-Za-z]*)\b', re.IGNORECASE)
@@ -16,4 +15,3 @@ FILES = {
     EXTRACTED_TENDERS: 'extracted_tender_numbers.txt'
 }
 
-CHROME_DRIVE_LOCATION = '/usr/bin/chromedriver'

@@ -1,5 +1,4 @@
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
+from chrome_driver_connector import setup_driver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -20,40 +19,15 @@ def read_file(filename):
         logging.error(f"{Fore.RED}Error: File {filename} not found{Style.RESET_ALL}")
         return []
 
-def setup_driver(headless=False):
-    options = webdriver.ChromeOptions()
-    if headless:
-        options.add_argument("--headless")
-    
-    service = Service(CHROME_DRIVE_LOCATION)
-    try:
-        driver = webdriver.Chrome(
-            service = service,
-            options = options,
-        )
-        driver.set_page_load_timeout(30)
-        driver.set_script_timeout(30)
-        return driver
-    except Exception as e:
-        logging.error(f"Failed to initialize Chrome driver: {str(e)}")
-        raise RuntimeError("Chrome driver initialization failed")
-
-def process_external_urls(driver, urls, keywords, extracted_tender_numbers):
+def process_external_urls(driver, urls, keywords, extracted_tender_numbers, tender_terms):
     logging.info(f"\n{Fore.CYAN}=== Processing External URLs ==={Style.RESET_ALL}")
-    tender_terms = ['tender', 'bid', 'rfp', 'proposal']
-    
+        
     for url in urls:
         try:
-            driver.get(url)
-            links = driver.find_elements(By.XPATH, "|".join(
-                [f"//a[contains(lower-case(.), '{term}')]" 
-                for term in tender_terms]
-            ))
+            links = find_tender_links(driver, tender_terms, url)
             
             for link in links:
-                href = link.get_attribute('href')
-                driver.execute_script(f"window.open('{href}');")
-                driver.switch_to.window(driver.window_handles[1])
+                href = open_link_in_new_tab(driver, link)
                 
                 try:
                     body_elements = WebDriverWait(driver, 10).until(
@@ -83,16 +57,32 @@ def process_external_urls(driver, urls, keywords, extracted_tender_numbers):
         except Exception as e:
             logging.error(f"{Fore.RED}⚠️ Error processing {url}: {str(e)}{Style.RESET_ALL}")
 
+def open_link_in_new_tab(driver, link):
+    href = link.get_attribute('href')
+    driver.execute_script(f"window.open('{href}');")
+    driver.switch_to.window(driver.window_handles[1])
+    return href
+
+def find_tender_links(driver, tender_terms, url):
+    driver.get(url)
+            
+    links = driver.find_elements(By.XPATH, "|".join(
+                 [f"//a[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '{term}')]" 
+                for term in tender_terms]
+            ))
+    
+    return links
+
 def main(headless=False):
     urls = read_file(FILES[URL_KEY])
     keywords = read_file(FILES[KEYWORD_KEY])
-    
+    tender_terms = ['tender', 'bid', 'rfp', 'proposal']
     extracted_tender_numbers = set()
     
-    driver = setup_driver(headless)
+    driver = setup_driver()
     try:
         if urls and keywords:
-            process_external_urls(driver, urls, keywords, extracted_tender_numbers)
+            process_external_urls(driver, urls, keywords, extracted_tender_numbers, tender_terms = tender_terms)
         
         if extracted_tender_numbers:
             with open(FILES['extracted_tenders'], 'w') as f:

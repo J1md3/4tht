@@ -16,7 +16,15 @@ A python tool that lets both organistions and individuals hunt for tenders relev
       - Colorama
       - re
       - argparse
-      
+
+Here's how to add these dependencies to your Python environment:
+
+```
+pip install selenium colorama
+```
+
+The `re` and `argparse` modules are included in Python's standard library, so they don't require separate installation.
+
 - Google chrome
 - Chromedriver (preffarably stored in /usr/bin)
 - Input Files:
@@ -32,7 +40,7 @@ A python tool that lets both organistions and individuals hunt for tenders relev
 
     To run in headless mode:
     
-      python script_name.py --headless
+      python 4tht.py --headless
 
   ## Contributing
 
