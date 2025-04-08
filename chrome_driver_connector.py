@@ -1,5 +1,5 @@
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+
 
 def setup_driver():   
     options = get_default_chrome_options()

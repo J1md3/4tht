@@ -12,6 +12,18 @@ from strings_util import *
 init(autoreset=True)
 
 def read_file(filename):
+    """
+    Reads a file and returns a list of non-empty lines.
+
+    Parameters:
+    filename (str): The path to the file to be read.
+
+    Returns:
+    list: A list of non-empty lines from the file. 
+          Returns an empty list if the file is not found or is empty.
+
+    Logs an error message if the file is not found.
+    """
     try:
         with open(filename, 'r') as f:
             return [line.strip() for line in f if line.strip()]
@@ -20,6 +32,28 @@ def read_file(filename):
         return []
 
 def process_external_urls(driver, urls, keywords, extracted_tender_numbers, tender_terms):
+    """
+    Process external URLs by opening each one in a new tab and extracting keywords
+    and tender numbers from the body of the page.
+
+    Parameters:
+    driver (selenium.webdriver.Chrome): A Chrome driver instance.
+    urls (list): A list of URLs to process.
+    keywords (list): A list of keywords to search in the body of the page.
+    extracted_tender_numbers (set): A set of tender numbers that have already been extracted.
+    tender_terms (list): A list of tender terms to search in the page titles.
+
+    Returns:
+    None
+
+    Logs information messages for each URL that is processed, including the URL and
+    the number of matches found. If a URL is skipped because of a weak match, an error
+    message is logged. If an unexpected error occurs, an error message is logged with
+    the error message.
+
+    This function assumes that the Chrome driver is set up to run in headless mode.
+    """
+    
     logging.info(f"\n{Fore.CYAN}=== Processing External URLs ==={Style.RESET_ALL}")
         
     for url in urls:
@@ -33,22 +67,22 @@ def process_external_urls(driver, urls, keywords, extracted_tender_numbers, tend
                     body_elements = WebDriverWait(driver, 10).until(
                         EC.presence_of_element_located((By.TAG_NAME, 'body'))
                     )
-                    body_text = body_elements.find_element(By.TAG_NAME, 'body').text.lower()
+                    lower_case_body_text = body_elements.text.lower()
                     
-                    matches = [
-                        phrase for phrase in keywords 
-                        if all(word in body_text.lower() for word in phrase.lower().split())
-                        ] 
+                    matches = identify_matches_from_keywords(keywords = keywords, body_text = lower_case_body_text) 
                     
-                    if len(matches) >= 2:
-                        tender_numbers_found = TENDER_NUMBER_REGEX.findall(body_text)
+                    number_of_matches = len(matches)
+                    if number_of_matches >= 2:
+                        tender_numbers_found = TENDER_NUMBER_REGEX.findall(lower_case_body_text)
                         unique_tns = set(tender_numbers_found)
                         extracted_tender_numbers.update(unique_tns)
                         
                         logging.info(f"{Fore.GREEN}🔥 Strong match at {Fore.BLUE}{href}{Style.RESET_ALL}")
                         logging.info(f"{Fore.LIGHTMAGENTA_EX}📌 Matched keywords: {Fore.LIGHTCYAN_EX}{', '.join(matches)}{Style.RESET_ALL}")
                         if unique_tns:
-                            logging.info(f"{Fore.LIGHTGREEN_EX}🔖 Found tender numbers: {Fore.LIGHTYELLOW_EX}{', '.join(unique_tns)}{Style.RESET_ALL}")                
+                            logging.info(f"{Fore.LIGHTGREEN_EX}🔖 Found tender numbers: {Fore.LIGHTYELLOW_EX}{', '.join(unique_tns)}{Style.RESET_ALL}")        
+                    else:
+                        logging.info(f"⚠️ Weak match at {href}")
                 except Exception as e:
                     logging.error(f"Unexpected error: {str(e)}")
                 finally:
@@ -57,13 +91,52 @@ def process_external_urls(driver, urls, keywords, extracted_tender_numbers, tend
         except Exception as e:
             logging.error(f"{Fore.RED}⚠️ Error processing {url}: {str(e)}{Style.RESET_ALL}")
 
+def identify_matches_from_keywords(keywords, body_text):
+    """
+    Identify matches from given keywords in the body text.
+    
+    Parameters:
+    keywords (list): List of keywords to search in the body text.
+    body_text (str): The text to search keywords in.
+    
+    Returns:
+    list: A list of matched keywords.
+    """
+    matched_keywords = []
+    for keyword in keywords:
+        if all(word in body_text for word in keyword.lower().split()):
+            matched_keywords.append(keyword)
+    return matched_keywords
+
 def open_link_in_new_tab(driver, link):
+    """
+    Opens a link in a new tab and switches to the new tab.
+    
+    Parameters:
+    driver (selenium.webdriver.Chrome): A Chrome driver instance.
+    link (selenium.webdriver.remote.webelement.WebElement): The link to open in a new tab.
+    
+    Returns:
+    str: The href of the link that was opened in a new tab.
+    """
     href = link.get_attribute('href')
     driver.execute_script(f"window.open('{href}');")
     driver.switch_to.window(driver.window_handles[1])
     return href
 
 def find_tender_links(driver, tender_terms, url):
+    
+    """
+    Finds all links on a given page that contain any of the given tender terms.
+
+    Parameters:
+    driver (selenium.webdriver.Chrome): A Chrome driver instance.
+    tender_terms (list): A list of tender terms to search for in the page content.
+    url (str): The URL of the page to search.
+
+    Returns:
+    list: A list of selenium.webdriver.remote.webelement.WebElement objects representing the links found.
+    """
     driver.get(url)
             
     links = driver.find_elements(By.XPATH, "|".join(
@@ -74,6 +147,27 @@ def find_tender_links(driver, tender_terms, url):
     return links
 
 def main(headless=False):
+    
+    """
+    Main entry point for the script.
+
+    Parameters:
+    headless (bool): Whether to run the Chrome driver in headless mode (default: False).
+
+    Returns:
+    None
+
+    Reads the list of URLs from file2.txt and the list of keywords from file3.txt.
+    Extracts tender numbers from the pages matching the given keywords and
+    writes them to extracted_tender_numbers.txt.
+
+    Logs information messages for each URL that is processed, including the URL
+    and the number of matches found. If a URL is skipped because of a weak match,
+    an error message is logged. If an unexpected error occurs, an error message
+    is logged with the error message.
+
+    :return: None
+    """
     urls = read_file(FILES[URL_KEY])
     keywords = read_file(FILES[KEYWORD_KEY])
     tender_terms = ['tender', 'bid', 'rfp', 'proposal']
