@@ -1,0 +1,10 @@
+file2.txt
+file3.txt
+extracted_tender_numbers.txt
+*.txt
+
+
+# IDE
+__pycache__/
+.venv/
+.vscode/
